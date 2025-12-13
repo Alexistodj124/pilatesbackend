@@ -223,6 +223,15 @@ class Client(db.Model):
     def __repr__(self):
         return f"<Client {self.nombre}>"
 
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "nombre": self.nombre,
+            "telefono": self.telefono,
+            "email": self.email,
+            "activo": self.activo,
+        }
+
 
 class Coach(db.Model):
     __tablename__ = "coaches"
@@ -238,6 +247,15 @@ class Coach(db.Model):
 
     def __repr__(self):
         return f"<Coach {self.nombre}>"
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "nombre": self.nombre,
+            "telefono": self.telefono,
+            "email": self.email,
+            "activo": self.activo,
+        }
 
 
 class MembershipPlan(db.Model):
@@ -255,6 +273,17 @@ class MembershipPlan(db.Model):
 
     def __repr__(self):
         return f"<MembershipPlan {self.nombre}>"
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "nombre": self.nombre,
+            "max_clases_por_semana": self.max_clases_por_semana,
+            "max_clases_totales": self.max_clases_totales,
+            "duracion_dias": self.duracion_dias,
+            "precio": float(self.precio) if self.precio is not None else None,
+            "activo": self.activo,
+        }
 
 
 class Membership(db.Model):
@@ -274,6 +303,17 @@ class Membership(db.Model):
 
     def __repr__(self):
         return f"<Membership client={self.client_id} plan={self.plan_id}>"
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "client_id": self.client_id,
+            "plan_id": self.plan_id,
+            "fecha_inicio": self.fecha_inicio.isoformat() if self.fecha_inicio else None,
+            "fecha_fin": self.fecha_fin.isoformat() if self.fecha_fin else None,
+            "estado": self.estado,
+            "clases_usadas": self.clases_usadas,
+        }
 
 
 class ClassTemplate(db.Model):
@@ -296,6 +336,20 @@ class ClassTemplate(db.Model):
     def __repr__(self):
         return f"<ClassTemplate {self.nombre} ({self.dia_semana})>"
 
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "nombre": self.nombre,
+            "coach_id": self.coach_id,
+            "dia_semana": self.dia_semana,
+            "hora_inicio": self.hora_inicio.isoformat() if self.hora_inicio else None,
+            "hora_fin": self.hora_fin.isoformat() if self.hora_fin else None,
+            "capacidad": self.capacidad,
+            "estado": self.estado,
+            "fecha_inicio": self.fecha_inicio.isoformat() if self.fecha_inicio else None,
+            "fecha_fin": self.fecha_fin.isoformat() if self.fecha_fin else None,
+        }
+
 
 class ClassSession(db.Model):
     __tablename__ = "class_sessions"
@@ -316,6 +370,19 @@ class ClassSession(db.Model):
 
     def __repr__(self):
         return f"<ClassSession {self.fecha} {self.hora_inicio}-{self.hora_fin}>"
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "template_id": self.template_id,
+            "fecha": self.fecha.isoformat() if self.fecha else None,
+            "hora_inicio": self.hora_inicio.isoformat() if self.hora_inicio else None,
+            "hora_fin": self.hora_fin.isoformat() if self.hora_fin else None,
+            "coach_id": self.coach_id,
+            "capacidad": self.capacidad,
+            "estado": self.estado,
+            "nota": self.nota,
+        }
 
 
 class Booking(db.Model):
@@ -338,3 +405,14 @@ class Booking(db.Model):
 
     def __repr__(self):
         return f"<Booking session={self.session_id} client={self.client_id}>"
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "session_id": self.session_id,
+            "client_id": self.client_id,
+            "membership_id": self.membership_id,
+            "estado": self.estado,
+            "asistio": self.asistio,
+            "check_in_at": self.check_in_at.isoformat() if self.check_in_at else None,
+        }

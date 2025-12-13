@@ -1266,27 +1266,12 @@ def create_app():
     @app.route("/clients", methods=["GET"])
     def list_clients():
         records = Client.query.order_by(Client.nombre.asc()).all()
-        return jsonify([
-            {
-                "id": c.id,
-                "nombre": c.nombre,
-                "telefono": c.telefono,
-                "email": c.email,
-                "activo": c.activo,
-            }
-            for c in records
-        ])
+        return jsonify([c.to_dict() for c in records])
 
     @app.route("/clients/<int:client_id>", methods=["GET"])
     def get_client(client_id):
         c = Client.query.get_or_404(client_id)
-        return jsonify({
-            "id": c.id,
-            "nombre": c.nombre,
-            "telefono": c.telefono,
-            "email": c.email,
-            "activo": c.activo,
-        })
+        return jsonify(c.to_dict())
 
     @app.route("/clients", methods=["POST"])
     def create_client():
@@ -1318,7 +1303,7 @@ def create_app():
         if "activo" in data:
             c.activo = bool(data["activo"])
         db.session.commit()
-        return jsonify({"message": "Client actualizado"})
+        return jsonify(c.to_dict())
 
     @app.route("/clients/<int:client_id>", methods=["DELETE"])
     def delete_client(client_id):
@@ -1332,27 +1317,12 @@ def create_app():
     @app.route("/coaches", methods=["GET"])
     def list_coaches():
         records = Coach.query.order_by(Coach.nombre.asc()).all()
-        return jsonify([
-            {
-                "id": c.id,
-                "nombre": c.nombre,
-                "telefono": c.telefono,
-                "email": c.email,
-                "activo": c.activo,
-            }
-            for c in records
-        ])
+        return jsonify([c.to_dict() for c in records])
 
     @app.route("/coaches/<int:coach_id>", methods=["GET"])
     def get_coach(coach_id):
         c = Coach.query.get_or_404(coach_id)
-        return jsonify({
-            "id": c.id,
-            "nombre": c.nombre,
-            "telefono": c.telefono,
-            "email": c.email,
-            "activo": c.activo,
-        })
+        return jsonify(c.to_dict())
 
     @app.route("/coaches", methods=["POST"])
     def create_coach():
@@ -1384,7 +1354,7 @@ def create_app():
         if "activo" in data:
             c.activo = bool(data["activo"])
         db.session.commit()
-        return jsonify({"message": "Coach actualizado"})
+        return jsonify(c.to_dict())
 
     @app.route("/coaches/<int:coach_id>", methods=["DELETE"])
     def delete_coach(coach_id):
@@ -1398,31 +1368,12 @@ def create_app():
     @app.route("/membership-plans", methods=["GET"])
     def list_membership_plans():
         records = MembershipPlan.query.order_by(MembershipPlan.nombre.asc()).all()
-        return jsonify([
-            {
-                "id": p.id,
-                "nombre": p.nombre,
-                "max_clases_por_semana": p.max_clases_por_semana,
-                "max_clases_totales": p.max_clases_totales,
-                "duracion_dias": p.duracion_dias,
-                "precio": float(p.precio),
-                "activo": p.activo,
-            }
-            for p in records
-        ])
+        return jsonify([p.to_dict() for p in records])
 
     @app.route("/membership-plans/<int:plan_id>", methods=["GET"])
     def get_membership_plan(plan_id):
         p = MembershipPlan.query.get_or_404(plan_id)
-        return jsonify({
-            "id": p.id,
-            "nombre": p.nombre,
-            "max_clases_por_semana": p.max_clases_por_semana,
-            "max_clases_totales": p.max_clases_totales,
-            "duracion_dias": p.duracion_dias,
-            "precio": float(p.precio),
-            "activo": p.activo,
-        })
+        return jsonify(p.to_dict())
 
     @app.route("/membership-plans", methods=["POST"])
     def create_membership_plan():
@@ -1460,7 +1411,7 @@ def create_app():
         if "activo" in data:
             p.activo = bool(data["activo"])
         db.session.commit()
-        return jsonify({"message": "MembershipPlan actualizado"})
+        return jsonify(p.to_dict())
 
     @app.route("/membership-plans/<int:plan_id>", methods=["DELETE"])
     def delete_membership_plan(plan_id):
@@ -1474,31 +1425,12 @@ def create_app():
     @app.route("/memberships", methods=["GET"])
     def list_memberships():
         records = Membership.query.all()
-        return jsonify([
-            {
-                "id": m.id,
-                "client_id": m.client_id,
-                "plan_id": m.plan_id,
-                "fecha_inicio": m.fecha_inicio.isoformat(),
-                "fecha_fin": m.fecha_fin.isoformat(),
-                "estado": m.estado,
-                "clases_usadas": m.clases_usadas,
-            }
-            for m in records
-        ])
+        return jsonify([m.to_dict() for m in records])
 
     @app.route("/memberships/<int:membership_id>", methods=["GET"])
     def get_membership(membership_id):
         m = Membership.query.get_or_404(membership_id)
-        return jsonify({
-            "id": m.id,
-            "client_id": m.client_id,
-            "plan_id": m.plan_id,
-            "fecha_inicio": m.fecha_inicio.isoformat(),
-            "fecha_fin": m.fecha_fin.isoformat(),
-            "estado": m.estado,
-            "clases_usadas": m.clases_usadas,
-        })
+        return jsonify(m.to_dict())
 
     @app.route("/memberships", methods=["POST"])
     def create_membership():
@@ -1550,7 +1482,7 @@ def create_app():
         if "clases_usadas" in data:
             m.clases_usadas = data["clases_usadas"]
         db.session.commit()
-        return jsonify({"message": "Membership actualizado"})
+        return jsonify(m.to_dict())
 
     @app.route("/memberships/<int:membership_id>", methods=["DELETE"])
     def delete_membership(membership_id):
@@ -1564,37 +1496,12 @@ def create_app():
     @app.route("/class-templates", methods=["GET"])
     def list_class_templates():
         records = ClassTemplate.query.all()
-        return jsonify([
-            {
-                "id": ct.id,
-                "nombre": ct.nombre,
-                "coach_id": ct.coach_id,
-                "dia_semana": ct.dia_semana,
-                "hora_inicio": ct.hora_inicio.isoformat(),
-                "hora_fin": ct.hora_fin.isoformat(),
-                "capacidad": ct.capacidad,
-                "estado": ct.estado,
-                "fecha_inicio": ct.fecha_inicio.isoformat() if ct.fecha_inicio else None,
-                "fecha_fin": ct.fecha_fin.isoformat() if ct.fecha_fin else None,
-            }
-            for ct in records
-        ])
+        return jsonify([ct.to_dict() for ct in records])
 
     @app.route("/class-templates/<int:template_id>", methods=["GET"])
     def get_class_template(template_id):
         ct = ClassTemplate.query.get_or_404(template_id)
-        return jsonify({
-            "id": ct.id,
-            "nombre": ct.nombre,
-            "coach_id": ct.coach_id,
-            "dia_semana": ct.dia_semana,
-            "hora_inicio": ct.hora_inicio.isoformat(),
-            "hora_fin": ct.hora_fin.isoformat(),
-            "capacidad": ct.capacidad,
-            "estado": ct.estado,
-            "fecha_inicio": ct.fecha_inicio.isoformat() if ct.fecha_inicio else None,
-            "fecha_fin": ct.fecha_fin.isoformat() if ct.fecha_fin else None,
-        })
+        return jsonify(ct.to_dict())
 
     @app.route("/class-templates", methods=["POST"])
     def create_class_template():
@@ -1653,7 +1560,7 @@ def create_app():
         if "fecha_fin" in data:
             ct.fecha_fin = parse_iso_date(data["fecha_fin"])
         db.session.commit()
-        return jsonify({"message": "ClassTemplate actualizado"})
+        return jsonify(ct.to_dict())
 
     @app.route("/class-templates/<int:template_id>", methods=["DELETE"])
     def delete_class_template(template_id):
@@ -1667,35 +1574,12 @@ def create_app():
     @app.route("/class-sessions", methods=["GET"])
     def list_class_sessions():
         records = ClassSession.query.all()
-        return jsonify([
-            {
-                "id": cs.id,
-                "template_id": cs.template_id,
-                "fecha": cs.fecha.isoformat(),
-                "hora_inicio": cs.hora_inicio.isoformat(),
-                "hora_fin": cs.hora_fin.isoformat(),
-                "coach_id": cs.coach_id,
-                "capacidad": cs.capacidad,
-                "estado": cs.estado,
-                "nota": cs.nota,
-            }
-            for cs in records
-        ])
+        return jsonify([cs.to_dict() for cs in records])
 
     @app.route("/class-sessions/<int:session_id>", methods=["GET"])
     def get_class_session(session_id):
         cs = ClassSession.query.get_or_404(session_id)
-        return jsonify({
-            "id": cs.id,
-            "template_id": cs.template_id,
-            "fecha": cs.fecha.isoformat(),
-            "hora_inicio": cs.hora_inicio.isoformat(),
-            "hora_fin": cs.hora_fin.isoformat(),
-            "coach_id": cs.coach_id,
-            "capacidad": cs.capacidad,
-            "estado": cs.estado,
-            "nota": cs.nota,
-        })
+        return jsonify(cs.to_dict())
 
     @app.route("/class-sessions", methods=["POST"])
     def create_class_session():
@@ -1754,7 +1638,7 @@ def create_app():
         if "nota" in data:
             cs.nota = data["nota"]
         db.session.commit()
-        return jsonify({"message": "ClassSession actualizado"})
+        return jsonify(cs.to_dict())
 
     @app.route("/class-sessions/<int:session_id>", methods=["DELETE"])
     def delete_class_session(session_id):
@@ -1768,31 +1652,12 @@ def create_app():
     @app.route("/bookings", methods=["GET"])
     def list_bookings():
         records = Booking.query.all()
-        return jsonify([
-            {
-                "id": b.id,
-                "session_id": b.session_id,
-                "client_id": b.client_id,
-                "membership_id": b.membership_id,
-                "estado": b.estado,
-                "asistio": b.asistio,
-                "check_in_at": b.check_in_at.isoformat() if b.check_in_at else None,
-            }
-            for b in records
-        ])
+        return jsonify([b.to_dict() for b in records])
 
     @app.route("/bookings/<int:booking_id>", methods=["GET"])
     def get_booking(booking_id):
         b = Booking.query.get_or_404(booking_id)
-        return jsonify({
-            "id": b.id,
-            "session_id": b.session_id,
-            "client_id": b.client_id,
-            "membership_id": b.membership_id,
-            "estado": b.estado,
-            "asistio": b.asistio,
-            "check_in_at": b.check_in_at.isoformat() if b.check_in_at else None,
-        })
+        return jsonify(b.to_dict())
 
     @app.route("/bookings", methods=["POST"])
     def create_booking():
@@ -1851,7 +1716,7 @@ def create_app():
         if "check_in_at" in data:
             b.check_in_at = parse_iso_datetime(data["check_in_at"]) if data["check_in_at"] else None
         db.session.commit()
-        return jsonify({"message": "Booking actualizado"})
+        return jsonify(b.to_dict())
 
     @app.route("/bookings/<int:booking_id>", methods=["DELETE"])
     def delete_booking(booking_id):
