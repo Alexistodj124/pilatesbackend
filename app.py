@@ -1,4 +1,5 @@
-from flask import Flask, jsonify, request
+from flask import Flask, Response, jsonify, request
+from werkzeug.middleware.dispatcher import DispatcherMiddleware
 from config import Config
 from models import db, Producto, Cliente, Orden, OrdenItem, Usuario, CategoriaProducto, MarcaProducto, Tienda, Talla
 from flask_migrate import Migrate
@@ -1229,6 +1230,15 @@ def create_app():
         db.session.delete(ta)
         db.session.commit()
         return jsonify({"message": "Talla eliminada"})
+    
+    prefix = app.config.get("URL_PREFIX", "/marehpilates")
+    if prefix:
+        # Montar la app bajo un prefijo (por ejemplo /coproda)
+        def _not_found(environ, start_response):
+            return Response("Not Found", status=404)(environ, start_response)
+
+        app.wsgi_app = DispatcherMiddleware(_not_found, {prefix: app.wsgi_app})
+
 
     return app
 
