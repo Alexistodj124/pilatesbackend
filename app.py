@@ -21,7 +21,7 @@ from models import (
     Booking,
 )
 from flask_migrate import Migrate
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask_cors import CORS
 from datetime import datetime
 
@@ -1669,13 +1669,49 @@ def create_app():
         except KeyError as e:
             return jsonify({"error": f"falta campo requerido {e.args[0]}"}), 400
 
-        if not ClassSession.query.get(session_id):
+        session_obj = ClassSession.query.get(session_id)
+        if not session_obj:
             return jsonify({"error": "session_id no válido"}), 400
         if not Client.query.get(client_id):
             return jsonify({"error": "client_id no válido"}), 400
         membership_id = data.get("membership_id")
-        if membership_id and not Membership.query.get(membership_id):
-            return jsonify({"error": "membership_id no válido"}), 400
+        membership = None
+        if membership_id:
+            membership = Membership.query.get(membership_id)
+            if not membership:
+                return jsonify({"error": "membership_id no válido"}), 400
+            if membership.estado != "Activa":
+                return jsonify({"error": "la membresía no está activa"}), 400
+
+            plan = membership.plan
+            session_date = session_obj.fecha
+
+            # Validación límite semanal
+            if plan and plan.max_clases_por_semana is not None:
+                # Semana calendario: lunes (0) a sábado (5) de la fecha de la sesión
+                start_week = session_date - timedelta(days=session_date.weekday())
+                end_week = start_week + timedelta(days=5)
+                weekly_count = (
+                    Booking.query.join(ClassSession, Booking.session_id == ClassSession.id)
+                    .filter(
+                        Booking.membership_id == membership.id,
+                        Booking.estado == "Reservada",
+                        ClassSession.fecha >= start_week,
+                        ClassSession.fecha <= end_week,
+                    )
+                    .count()
+                )
+                if weekly_count >= plan.max_clases_por_semana:
+                    return jsonify({"error": "límite semanal de la membresía alcanzado"}), 400
+
+            # Validación límite total
+            if plan and plan.max_clases_totales is not None:
+                total_count = Booking.query.filter(
+                    Booking.membership_id == membership.id,
+                    Booking.estado == "Reservada",
+                ).count()
+                if total_count >= plan.max_clases_totales:
+                    return jsonify({"error": "límite total de la membresía alcanzado"}), 400
 
         b = Booking(
             session_id=session_id,
