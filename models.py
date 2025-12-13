@@ -206,3 +206,135 @@ class Usuario(db.Model):
 
     def __repr__(self):
         return f"<Usuario {self.username} (admin={self.is_admin})>"
+
+
+class Client(db.Model):
+    __tablename__ = "clients"
+
+    id = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(120), nullable=False)
+    telefono = db.Column(db.String(30), nullable=False)
+    email = db.Column(db.String(255), nullable=True)
+    activo = db.Column(db.Boolean, default=True, nullable=False)
+
+    memberships = db.relationship("Membership", back_populates="client")
+    bookings = db.relationship("Booking", back_populates="client")
+
+    def __repr__(self):
+        return f"<Client {self.nombre}>"
+
+
+class Coach(db.Model):
+    __tablename__ = "coaches"
+
+    id = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(120), nullable=False)
+    telefono = db.Column(db.String(30), nullable=False)
+    email = db.Column(db.String(255), nullable=True)
+    activo = db.Column(db.Boolean, default=True, nullable=False)
+
+    class_templates = db.relationship("ClassTemplate", back_populates="coach")
+    class_sessions = db.relationship("ClassSession", back_populates="coach")
+
+    def __repr__(self):
+        return f"<Coach {self.nombre}>"
+
+
+class MembershipPlan(db.Model):
+    __tablename__ = "membership_plans"
+
+    id = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(120), nullable=False)
+    max_clases_por_semana = db.Column(db.Integer, nullable=True)
+    max_clases_totales = db.Column(db.Integer, nullable=True)
+    duracion_dias = db.Column(db.Integer, nullable=True)
+    precio = db.Column(Numeric(10, 2), nullable=False)
+    activo = db.Column(db.Boolean, default=True, nullable=False)
+
+    memberships = db.relationship("Membership", back_populates="plan")
+
+    def __repr__(self):
+        return f"<MembershipPlan {self.nombre}>"
+
+
+class Membership(db.Model):
+    __tablename__ = "memberships"
+
+    id = db.Column(db.Integer, primary_key=True)
+    client_id = db.Column(db.Integer, db.ForeignKey("clients.id"), nullable=False)
+    plan_id = db.Column(db.Integer, db.ForeignKey("membership_plans.id"), nullable=False)
+    fecha_inicio = db.Column(db.Date, nullable=False)
+    fecha_fin = db.Column(db.Date, nullable=False)
+    estado = db.Column(db.String(50), nullable=False)
+    clases_usadas = db.Column(db.Integer, default=0, nullable=False)
+
+    client = db.relationship("Client", back_populates="memberships")
+    plan = db.relationship("MembershipPlan", back_populates="memberships")
+    bookings = db.relationship("Booking", back_populates="membership")
+
+    def __repr__(self):
+        return f"<Membership client={self.client_id} plan={self.plan_id}>"
+
+
+class ClassTemplate(db.Model):
+    __tablename__ = "class_templates"
+
+    id = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(255), nullable=False)
+    coach_id = db.Column(db.Integer, db.ForeignKey("coaches.id"), nullable=False)
+    dia_semana = db.Column(db.Integer, nullable=False)  # 0-6
+    hora_inicio = db.Column(db.Time, nullable=False)
+    hora_fin = db.Column(db.Time, nullable=False)
+    capacidad = db.Column(db.Integer, nullable=False)
+    estado = db.Column(db.String(50), nullable=False)
+    fecha_inicio = db.Column(db.Date, nullable=True)
+    fecha_fin = db.Column(db.Date, nullable=True)
+
+    coach = db.relationship("Coach", back_populates="class_templates")
+    class_sessions = db.relationship("ClassSession", back_populates="template")
+
+    def __repr__(self):
+        return f"<ClassTemplate {self.nombre} ({self.dia_semana})>"
+
+
+class ClassSession(db.Model):
+    __tablename__ = "class_sessions"
+
+    id = db.Column(db.Integer, primary_key=True)
+    template_id = db.Column(db.Integer, db.ForeignKey("class_templates.id"), nullable=True)
+    fecha = db.Column(db.Date, nullable=False)
+    hora_inicio = db.Column(db.Time, nullable=False)
+    hora_fin = db.Column(db.Time, nullable=False)
+    coach_id = db.Column(db.Integer, db.ForeignKey("coaches.id"), nullable=False)
+    capacidad = db.Column(db.Integer, nullable=False)
+    estado = db.Column(db.String(50), nullable=False, default="Programada")
+    nota = db.Column(db.Text, nullable=True)
+
+    template = db.relationship("ClassTemplate", back_populates="class_sessions")
+    coach = db.relationship("Coach", back_populates="class_sessions")
+    bookings = db.relationship("Booking", back_populates="session")
+
+    def __repr__(self):
+        return f"<ClassSession {self.fecha} {self.hora_inicio}-{self.hora_fin}>"
+
+
+class Booking(db.Model):
+    __tablename__ = "bookings"
+    __table_args__ = (
+        db.UniqueConstraint("session_id", "client_id", name="uq_booking_session_client"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    session_id = db.Column(db.Integer, db.ForeignKey("class_sessions.id"), nullable=False)
+    client_id = db.Column(db.Integer, db.ForeignKey("clients.id"), nullable=False)
+    membership_id = db.Column(db.Integer, db.ForeignKey("memberships.id"), nullable=True)
+    estado = db.Column(db.String(50), nullable=False)
+    asistio = db.Column(db.Boolean, default=False, nullable=False)
+    check_in_at = db.Column(db.DateTime, nullable=True)
+
+    session = db.relationship("ClassSession", back_populates="bookings")
+    client = db.relationship("Client", back_populates="bookings")
+    membership = db.relationship("Membership", back_populates="bookings")
+
+    def __repr__(self):
+        return f"<Booking session={self.session_id} client={self.client_id}>"
