@@ -19,6 +19,7 @@ from models import (
     ClassTemplate,
     ClassSession,
     Booking,
+    AccountMovement,
 )
 from flask_migrate import Migrate
 from datetime import datetime, timedelta
@@ -354,6 +355,17 @@ def create_app():
         # acepta "HH:MM" o "HH:MM:SS"
         fmt = "%H:%M:%S" if value.count(":") == 2 else "%H:%M"
         return datetime.strptime(value, fmt).time()
+
+    def get_client_balance(client_id: int):
+        client = Client.query.get(client_id)
+        if not client:
+            return None
+        return float(client.saldo or 0)
+
+    def apply_movement_and_update_balance(client: Client, movement: AccountMovement):
+        client.saldo = (client.saldo or 0) + movement.amount
+        db.session.add(movement)
+        db.session.add(client)
 
     def calcular_subtotal_items(items):
         return sum((item.cantidad or 0) * (item.precio_unitario or 0) for item in items)
@@ -1312,6 +1324,14 @@ def create_app():
         db.session.commit()
         return jsonify({"message": "Client eliminado"})
 
+    @app.route("/clients/<int:client_id>/balance", methods=["GET"])
+    def get_client_balance_route(client_id):
+        c = Client.query.get_or_404(client_id)
+        return jsonify({
+            "client_id": c.id,
+            "saldo": float(c.saldo or 0),
+        })
+
     # ---------- CRUD COACHES ----------
 
     @app.route("/coaches", methods=["GET"])
@@ -1672,8 +1692,12 @@ def create_app():
         session_obj = ClassSession.query.get(session_id)
         if not session_obj:
             return jsonify({"error": "session_id no válido"}), 400
-        if not Client.query.get(client_id):
+        client = Client.query.get(client_id)
+        if not client:
             return jsonify({"error": "client_id no válido"}), 400
+        # Bloqueo si el cliente tiene saldo pendiente (>0)
+        if float(client.saldo or 0) > 0:
+            return jsonify({"error": "cliente tiene saldo pendiente, no puede reservar"}), 400
         membership_id = data.get("membership_id")
         membership = None
         if membership_id:
@@ -1760,6 +1784,57 @@ def create_app():
         db.session.delete(b)
         db.session.commit()
         return jsonify({"message": "Booking eliminado"})
+
+    # ---------- ACCOUNT MOVEMENTS (multas / pagos) ----------
+
+    @app.route("/account-movements", methods=["GET"])
+    def list_account_movements():
+        records = AccountMovement.query.order_by(AccountMovement.creado_en.desc()).all()
+        return jsonify([m.to_dict() for m in records])
+
+    @app.route("/account-movements/<int:movement_id>", methods=["GET"])
+    def get_account_movement(movement_id):
+        m = AccountMovement.query.get_or_404(movement_id)
+        return jsonify(m.to_dict())
+
+    @app.route("/account-movements", methods=["POST"])
+    def create_account_movement():
+        data = request.get_json() or {}
+        try:
+            client_id = data["client_id"]
+            amount = data["amount"]
+            tipo = data["tipo"]  # fine | payment | adjustment
+        except KeyError as e:
+            return jsonify({"error": f"falta campo requerido {e.args[0]}"}), 400
+
+        client = Client.query.get(client_id)
+        if not client:
+            return jsonify({"error": "client_id no válido"}), 400
+
+        booking_id = data.get("booking_id")
+        if booking_id and not Booking.query.get(booking_id):
+            return jsonify({"error": "booking_id no válido"}), 400
+
+        signed_amount = float(amount)
+        if tipo == "fine":
+            signed_amount = abs(signed_amount)
+        elif tipo == "payment":
+            signed_amount = -abs(signed_amount)
+        elif tipo == "adjustment":
+            signed_amount = signed_amount
+        else:
+            return jsonify({"error": "tipo debe ser fine, payment o adjustment"}), 400
+
+        movement = AccountMovement(
+            client_id=client_id,
+            amount=signed_amount,
+            tipo=tipo,
+            booking_id=booking_id,
+            nota=data.get("nota"),
+        )
+        apply_movement_and_update_balance(client, movement)
+        db.session.commit()
+        return jsonify(movement.to_dict()), 201
     
     prefix = app.config.get("URL_PREFIX", "/marehpilates")
     if prefix:

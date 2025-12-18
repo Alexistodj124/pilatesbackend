@@ -216,9 +216,11 @@ class Client(db.Model):
     telefono = db.Column(db.String(30), nullable=False)
     email = db.Column(db.String(255), nullable=True)
     activo = db.Column(db.Boolean, default=True, nullable=False)
+    saldo = db.Column(Numeric(10, 2), default=0, nullable=False)
 
     memberships = db.relationship("Membership", back_populates="client")
     bookings = db.relationship("Booking", back_populates="client")
+    account_movements = db.relationship("AccountMovement", back_populates="client")
 
     def __repr__(self):
         return f"<Client {self.nombre}>"
@@ -230,6 +232,7 @@ class Client(db.Model):
             "telefono": self.telefono,
             "email": self.email,
             "activo": self.activo,
+            "saldo": float(self.saldo) if self.saldo is not None else 0,
         }
 
 
@@ -415,4 +418,32 @@ class Booking(db.Model):
             "estado": self.estado,
             "asistio": self.asistio,
             "check_in_at": self.check_in_at.isoformat() if self.check_in_at else None,
+        }
+
+
+class AccountMovement(db.Model):
+    __tablename__ = "account_movements"
+
+    id = db.Column(db.Integer, primary_key=True)
+    client_id = db.Column(db.Integer, db.ForeignKey("clients.id"), nullable=False)
+    amount = db.Column(Numeric(10, 2), nullable=False)  # >0 deuda, <0 abono
+    tipo = db.Column(db.String(20), nullable=False)  # fine | payment | adjustment
+    booking_id = db.Column(db.Integer, db.ForeignKey("bookings.id"), nullable=True)
+    nota = db.Column(db.String(255), nullable=True)
+    creado_en = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    client = db.relationship("Client", back_populates="account_movements")
+
+    def __repr__(self):
+        return f"<AccountMovement client={self.client_id} amount={self.amount}>"
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "client_id": self.client_id,
+            "amount": float(self.amount),
+            "tipo": self.tipo,
+            "booking_id": self.booking_id,
+            "nota": self.nota,
+            "creado_en": self.creado_en.isoformat() if self.creado_en else None,
         }
