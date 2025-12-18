@@ -1,6 +1,6 @@
 from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import Numeric
+from sqlalchemy import Numeric, text
 from werkzeug.security import generate_password_hash, check_password_hash
 
 db = SQLAlchemy()
@@ -216,7 +216,7 @@ class Client(db.Model):
     telefono = db.Column(db.String(30), nullable=False)
     email = db.Column(db.String(255), nullable=True)
     activo = db.Column(db.Boolean, default=True, nullable=False)
-    saldo = db.Column(Numeric(10, 2), default=0, nullable=False)
+    saldo = db.Column(Numeric(10, 2), default=0, server_default=text("0"), nullable=False)
 
     memberships = db.relationship("Membership", back_populates="client")
     bookings = db.relationship("Booking", back_populates="client")
