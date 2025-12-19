@@ -1711,6 +1711,7 @@ def create_app():
             if membership.fecha_fin and membership.fecha_fin < date.today():
                 membership.estado = "Inactiva"
                 db.session.add(membership)
+                db.session.commit()  # persist the state change even if we reject the booking
             if membership.estado != "Activa":
                 return jsonify({"error": "la membresía no está activa"}), 400
 
