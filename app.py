@@ -25,6 +25,7 @@ from flask_migrate import Migrate
 from datetime import datetime, timedelta
 from flask_cors import CORS
 from datetime import datetime
+from decimal import Decimal
 
 
 
@@ -363,7 +364,9 @@ def create_app():
         return float(client.saldo or 0)
 
     def apply_movement_and_update_balance(client: Client, movement: AccountMovement):
-        client.saldo = (client.saldo or 0) + movement.amount
+        current_saldo = Decimal(str(client.saldo or 0))
+        delta = Decimal(str(movement.amount or 0))
+        client.saldo = current_saldo + delta
         db.session.add(movement)
         db.session.add(client)
 
@@ -1815,13 +1818,14 @@ def create_app():
         if booking_id and not Booking.query.get(booking_id):
             return jsonify({"error": "booking_id no válido"}), 400
 
-        signed_amount = float(amount)
+        # Manejo con Decimal para evitar errores de suma Decimal/float en saldo
+        raw_amount = Decimal(str(amount))
         if tipo == "fine":
-            signed_amount = abs(signed_amount)
+            signed_amount = abs(raw_amount)
         elif tipo == "payment":
-            signed_amount = -abs(signed_amount)
+            signed_amount = -abs(raw_amount)
         elif tipo == "adjustment":
-            signed_amount = signed_amount
+            signed_amount = raw_amount
         else:
             return jsonify({"error": "tipo debe ser fine, payment o adjustment"}), 400
 
