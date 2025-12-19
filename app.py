@@ -22,7 +22,7 @@ from models import (
     AccountMovement,
 )
 from flask_migrate import Migrate
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from flask_cors import CORS
 from datetime import datetime
 from decimal import Decimal
@@ -1707,6 +1707,10 @@ def create_app():
             membership = Membership.query.get(membership_id)
             if not membership:
                 return jsonify({"error": "membership_id no válido"}), 400
+            # Desactiva automáticamente si la fecha_fin ya pasó
+            if membership.fecha_fin and membership.fecha_fin < date.today():
+                membership.estado = "Inactiva"
+                db.session.add(membership)
             if membership.estado != "Activa":
                 return jsonify({"error": "la membresía no está activa"}), 400
 
