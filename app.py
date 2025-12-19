@@ -1717,6 +1717,11 @@ def create_app():
 
             plan = membership.plan
             session_date = session_obj.fecha
+            # No permitir reservas en fechas posteriores al vencimiento de la membresía
+            if membership.fecha_fin and session_date and session_date > membership.fecha_fin:
+                return jsonify({
+                    "error": f"la membresía vence el {membership.fecha_fin.isoformat()} y la clase es el {session_date.isoformat()}"
+                }), 400
 
             # Validación límite semanal
             if plan and plan.max_clases_por_semana is not None:
