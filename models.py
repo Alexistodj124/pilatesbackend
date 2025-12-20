@@ -433,6 +433,7 @@ class AccountMovement(db.Model):
     creado_en = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     client = db.relationship("Client", back_populates="account_movements")
+    payments = db.relationship("Payment", back_populates="movement", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<AccountMovement client={self.client_id} amount={self.amount}>"
@@ -446,4 +447,31 @@ class AccountMovement(db.Model):
             "booking_id": self.booking_id,
             "nota": self.nota,
             "creado_en": self.creado_en.isoformat() if self.creado_en else None,
+            "payments": [p.to_dict() for p in self.payments] if self.payments else [],
+        }
+
+
+class Payment(db.Model):
+    __tablename__ = "payments"
+
+    id = db.Column(db.Integer, primary_key=True)
+    movement_id = db.Column(db.Integer, db.ForeignKey("account_movements.id"), nullable=False)
+    membership_id = db.Column(db.Integer, db.ForeignKey("memberships.id"), nullable=True)
+    payment_type = db.Column(db.String(20), nullable=True)  # membership | multa | otro
+    payment_method = db.Column(db.String(50), nullable=True)
+    payment_reference = db.Column(db.String(255), nullable=True)
+    fecha_pago = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    movement = db.relationship("AccountMovement", back_populates="payments")
+    membership = db.relationship("Membership")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "movement_id": self.movement_id,
+            "membership_id": self.membership_id,
+            "payment_type": self.payment_type,
+            "payment_method": self.payment_method,
+            "payment_reference": self.payment_reference,
+            "fecha_pago": self.fecha_pago.isoformat() if self.fecha_pago else None,
         }

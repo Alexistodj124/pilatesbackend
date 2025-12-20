@@ -20,11 +20,11 @@ from models import (
     ClassSession,
     Booking,
     AccountMovement,
+    Payment,
 )
 from flask_migrate import Migrate
 from datetime import datetime, timedelta, date
 from flask_cors import CORS
-from datetime import datetime
 from decimal import Decimal
 
 
@@ -1828,12 +1828,26 @@ def create_app():
         if booking_id and not Booking.query.get(booking_id):
             return jsonify({"error": "booking_id no válido"}), 400
 
+        # Campos adicionales para pagos (sólo aplica si tipo == payment)
+        payment_type = data.get("payment_type")  # membership | multa | otro
+        payment_method = data.get("payment_method")
+        payment_reference = data.get("payment_reference")
+        payment_date_str = data.get("payment_date") or data.get("fecha_pago")
+        payment_membership_id = data.get("membership_id")
+        payment_membership = None
+        if payment_membership_id:
+            payment_membership = Membership.query.get(payment_membership_id)
+            if not payment_membership:
+                return jsonify({"error": "membership_id no válido"}), 400
+
         # Manejo con Decimal para evitar errores de suma Decimal/float en saldo
         raw_amount = Decimal(str(amount))
         if tipo == "fine":
             signed_amount = abs(raw_amount)
         elif tipo == "payment":
             signed_amount = -abs(raw_amount)
+            if payment_type and payment_type not in {"membership", "multa", "otro"}:
+                return jsonify({"error": "payment_type debe ser membership, multa u otro"}), 400
         elif tipo == "adjustment":
             signed_amount = raw_amount
         else:
@@ -1846,6 +1860,16 @@ def create_app():
             booking_id=booking_id,
             nota=data.get("nota"),
         )
+        if tipo == "payment":
+            payment = Payment(
+                movement=movement,
+                membership_id=payment_membership.id if payment_membership else None,
+                payment_type=payment_type,
+                payment_method=payment_method,
+                payment_reference=payment_reference,
+                fecha_pago=parse_iso_datetime(payment_date_str) if payment_date_str else datetime.utcnow(),
+            )
+            db.session.add(payment)
         apply_movement_and_update_balance(client, movement)
         db.session.commit()
         return jsonify(movement.to_dict()), 201
