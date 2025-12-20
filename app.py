@@ -1493,6 +1493,7 @@ def create_app():
             db.session.flush()  # asegurar ID de la membresía
             raw_amount = Decimal(str(payment_amount))
             payment = Payment(
+                client_id=client_id,
                 movement_id=None,
                 membership=m,
                 payment_type="membership",
@@ -1909,6 +1910,7 @@ def create_app():
         )
         if tipo == "payment":
             payment = Payment(
+                client_id=client_id,
                 movement=movement,
                 membership_id=payment_membership.id if payment_membership else None,
                 payment_type="multa",

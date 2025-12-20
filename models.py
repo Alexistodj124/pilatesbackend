@@ -221,6 +221,7 @@ class Client(db.Model):
     memberships = db.relationship("Membership", back_populates="client")
     bookings = db.relationship("Booking", back_populates="client")
     account_movements = db.relationship("AccountMovement", back_populates="client")
+    payments = db.relationship("Payment", back_populates="client")
 
     def __repr__(self):
         return f"<Client {self.nombre}>"
@@ -459,6 +460,7 @@ class Payment(db.Model):
     __tablename__ = "payments"
 
     id = db.Column(db.Integer, primary_key=True)
+    client_id = db.Column(db.Integer, db.ForeignKey("clients.id"), nullable=True)
     movement_id = db.Column(db.Integer, db.ForeignKey("account_movements.id"), nullable=True)
     membership_id = db.Column(db.Integer, db.ForeignKey("memberships.id"), nullable=True)
     payment_type = db.Column(db.String(20), nullable=True)  # membership | multa | otro
@@ -467,12 +469,14 @@ class Payment(db.Model):
     payment_reference = db.Column(db.String(255), nullable=True)
     fecha_pago = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
+    client = db.relationship("Client", back_populates="payments")
     movement = db.relationship("AccountMovement", back_populates="payments")
     membership = db.relationship("Membership", back_populates="payments")
 
     def to_dict(self):
         return {
             "id": self.id,
+            "client_id": self.client_id,
             "movement_id": self.movement_id,
             "membership_id": self.membership_id,
             "payment_type": self.payment_type,
