@@ -23,7 +23,7 @@ from models import (
     Payment,
 )
 from flask_migrate import Migrate
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta, date, time
 from flask_cors import CORS
 from decimal import Decimal
 
@@ -1831,6 +1831,31 @@ def create_app():
     def get_account_movement(movement_id):
         m = AccountMovement.query.get_or_404(movement_id)
         return jsonify(m.to_dict())
+
+    @app.route("/payments", methods=["GET"])
+    def list_payments():
+        """
+        Lista pagos, opcionalmente filtrados por rango de fechas (fecha_pago).
+        Query params:
+          - inicio: fecha ISO (e.g., 2025-01-01 o 2025-01-01T00:00:00Z)
+          - fin:    fecha ISO (e.g., 2025-01-31 o 2025-01-31T23:59:59Z)
+        """
+        inicio_str = request.args.get("inicio")
+        fin_str = request.args.get("fin")
+        query = Payment.query
+        try:
+            if inicio_str:
+                inicio_date = parse_iso_date(inicio_str)
+                inicio_dt = datetime.combine(inicio_date, time.min)
+                query = query.filter(Payment.fecha_pago >= inicio_dt)
+            if fin_str:
+                fin_date = parse_iso_date(fin_str)
+                fin_dt = datetime.combine(fin_date, time.max)
+                query = query.filter(Payment.fecha_pago <= fin_dt)
+        except ValueError:
+            return jsonify({"error": "inicio/fin deben ser fechas ISO válidas"}), 400
+        records = query.order_by(Payment.fecha_pago.desc()).all()
+        return jsonify([p.to_dict() for p in records])
 
     @app.route("/account-movements", methods=["POST"])
     def create_account_movement():
