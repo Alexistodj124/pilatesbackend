@@ -361,6 +361,7 @@ class ClassSession(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     template_id = db.Column(db.Integer, db.ForeignKey("class_templates.id"), nullable=True)
+    nombre = db.Column(db.String(255), nullable=True)
     fecha = db.Column(db.Date, nullable=False)
     hora_inicio = db.Column(db.Time, nullable=False)
     hora_fin = db.Column(db.Time, nullable=False)
@@ -380,6 +381,7 @@ class ClassSession(db.Model):
         return {
             "id": self.id,
             "template_id": self.template_id,
+            "nombre": self.nombre,
             "fecha": self.fecha.isoformat() if self.fecha else None,
             "hora_inicio": self.hora_inicio.isoformat() if self.hora_inicio else None,
             "hora_fin": self.hora_fin.isoformat() if self.hora_fin else None,

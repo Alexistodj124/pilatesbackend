@@ -1646,6 +1646,7 @@ def create_app():
 
         cs = ClassSession(
             template_id=template_id,
+            nombre=data.get("nombre"),
             fecha=fecha,
             hora_inicio=hora_inicio,
             hora_fin=hora_fin,
@@ -1765,11 +1766,12 @@ def create_app():
 
             # Validación límite total
             if plan and plan.max_clases_totales is not None:
-                total_count = Booking.query.filter(
+                clases_usadas = membership.clases_usadas or 0
+                pending_bookings = Booking.query.filter(
                     Booking.membership_id == membership.id,
-                    Booking.estado == "Reservada",
+                    Booking.estado != "Completada",
                 ).count()
-                if total_count >= plan.max_clases_totales:
+                if (clases_usadas + pending_bookings) >= plan.max_clases_totales:
                     return jsonify({"error": "límite total de la membresía alcanzado"}), 400
 
         b = Booking(
