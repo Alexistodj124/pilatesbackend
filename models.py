@@ -303,6 +303,7 @@ class Membership(db.Model):
     client = db.relationship("Client", back_populates="memberships")
     plan = db.relationship("MembershipPlan", back_populates="memberships")
     bookings = db.relationship("Booking", back_populates="membership")
+    payments = db.relationship("Payment", back_populates="membership")
 
     def __repr__(self):
         return f"<Membership client={self.client_id} plan={self.plan_id}>"
@@ -316,6 +317,7 @@ class Membership(db.Model):
             "fecha_fin": self.fecha_fin.isoformat() if self.fecha_fin else None,
             "estado": self.estado,
             "clases_usadas": self.clases_usadas,
+            "payments": [p.to_dict() for p in self.payments] if hasattr(self, "payments") and self.payments else [],
         }
 
 
@@ -463,7 +465,7 @@ class Payment(db.Model):
     fecha_pago = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     movement = db.relationship("AccountMovement", back_populates="payments")
-    membership = db.relationship("Membership")
+    membership = db.relationship("Membership", back_populates="payments")
 
     def to_dict(self):
         return {
