@@ -1467,7 +1467,8 @@ def create_app():
         except KeyError as e:
             return jsonify({"error": f"falta campo requerido {e.args[0]}"}), 400
 
-        if not Client.query.get(client_id):
+        client = Client.query.get(client_id)
+        if not client:
             return jsonify({"error": "client_id no válido"}), 400
         if not MembershipPlan.query.get(plan_id):
             return jsonify({"error": "plan_id no válido"}), 400
@@ -1481,6 +1482,27 @@ def create_app():
             clases_usadas=data.get("clases_usadas", 0),
         )
         db.session.add(m)
+
+        # Pago opcional al crear la membresía (solo registra Payment, sin movimiento)
+        payment_amount = data.get("payment_amount")
+        payment_method = data.get("payment_method")
+        payment_reference = data.get("payment_reference")
+        payment_date_str = data.get("payment_date") or data.get("fecha_pago")
+
+        if payment_amount is not None:
+            db.session.flush()  # asegurar ID de la membresía
+            raw_amount = Decimal(str(payment_amount))
+            payment = Payment(
+                movement_id=None,
+                membership=m,
+                payment_type="membership",
+                amount=abs(raw_amount),
+                payment_method=payment_method,
+                payment_reference=payment_reference,
+                fecha_pago=parse_iso_datetime(payment_date_str) if payment_date_str else datetime.utcnow(),
+            )
+            db.session.add(payment)
+
         db.session.commit()
         return jsonify({"id": m.id}), 201
 
@@ -1829,7 +1851,6 @@ def create_app():
             return jsonify({"error": "booking_id no válido"}), 400
 
         # Campos adicionales para pagos (sólo aplica si tipo == payment)
-        payment_type = data.get("payment_type")  # membership | multa | otro
         payment_method = data.get("payment_method")
         payment_reference = data.get("payment_reference")
         payment_date_str = data.get("payment_date") or data.get("fecha_pago")
@@ -1846,8 +1867,7 @@ def create_app():
             signed_amount = abs(raw_amount)
         elif tipo == "payment":
             signed_amount = -abs(raw_amount)
-            if payment_type and payment_type not in {"membership", "multa", "otro"}:
-                return jsonify({"error": "payment_type debe ser membership, multa u otro"}), 400
+            payment_type = "multa"  # siempre multa para pagos via este endpoint
         elif tipo == "adjustment":
             signed_amount = raw_amount
         else:
@@ -1864,7 +1884,8 @@ def create_app():
             payment = Payment(
                 movement=movement,
                 membership_id=payment_membership.id if payment_membership else None,
-                payment_type=payment_type,
+                payment_type="multa",
+                amount=abs(raw_amount),
                 payment_method=payment_method,
                 payment_reference=payment_reference,
                 fecha_pago=parse_iso_datetime(payment_date_str) if payment_date_str else datetime.utcnow(),
