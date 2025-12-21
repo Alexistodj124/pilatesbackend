@@ -146,6 +146,8 @@ class Orden(db.Model):
     fecha = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     descuento = db.Column(Numeric(10, 2), nullable=False, default=0)
     total = db.Column(Numeric(10, 2), nullable=False, default=0)
+    tipo_pago = db.Column(db.String(50), nullable=True)
+    referencia_pago = db.Column(db.String(255), nullable=True)
 
     # Relación con cliente (muchas órdenes -> un cliente)
     cliente_id = db.Column(db.Integer, db.ForeignKey("clientes.id"), nullable=False)

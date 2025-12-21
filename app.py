@@ -381,6 +381,8 @@ def create_app():
             "fecha": orden.fecha.isoformat(),
             "descuento": float(orden.descuento) if orden.descuento is not None else 0,
             "total": float(orden.total) if orden.total is not None else 0,
+            "tipo_pago": orden.tipo_pago,
+            "referencia_pago": orden.referencia_pago,
             "cliente": {
                 "id": orden.cliente.id,
                 "nombre": orden.cliente.nombre,
@@ -530,6 +532,8 @@ def create_app():
         orden = Orden(
             codigo=codigo,
             fecha=fecha,
+            tipo_pago=data.get("tipo_pago"),
+            referencia_pago=data.get("referencia_pago"),
             cliente=cliente
         )
         db.session.add(orden)
@@ -599,6 +603,10 @@ def create_app():
 
         if "fecha" in data:
             orden.fecha = parse_iso_datetime(data["fecha"])
+        if "tipo_pago" in data:
+            orden.tipo_pago = data.get("tipo_pago")
+        if "referencia_pago" in data:
+            orden.referencia_pago = data.get("referencia_pago")
 
         # Cliente (solo permitimos cambiar cliente por id para simplificar)
         if "cliente_id" in data:
